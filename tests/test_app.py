@@ -21,8 +21,15 @@ def client():
 @pytest.fixture(autouse=True)
 def reset_activities():
     """Reset activities data before each test"""
-    # Save original state
-    original_activities = {
+    import copy
+    from app import activities as app_activities
+    
+    # Create a deep copy of the original activities state
+    original_activities = copy.deepcopy(app_activities)
+    
+    # Reset to original state before test
+    app_activities.clear()
+    app_activities.update({
         "Chess Club": {
             "description": "Learn strategies and compete in chess tournaments",
             "schedule": "Fridays, 3:30 PM - 5:00 PM",
@@ -41,17 +48,13 @@ def reset_activities():
             "max_participants": 30,
             "participants": ["john@mergington.edu", "olivia@mergington.edu"]
         }
-    }
-    
-    # Reset to original state before test
-    activities.clear()
-    activities.update(original_activities)
+    })
     
     yield
     
     # Reset to original state after test
-    activities.clear()
-    activities.update(original_activities)
+    app_activities.clear()
+    app_activities.update(original_activities)
 
 
 def test_root_redirects_to_index(client):
@@ -152,8 +155,9 @@ def test_multiple_activities_signup(client):
 
 def test_activity_with_special_characters(client):
     """Test signing up for activities with special characters in name"""
+    from urllib.parse import quote
+    
     # First add an activity with special characters for testing
-    from app import activities
     activities["Art & Crafts"] = {
         "description": "Creative arts",
         "schedule": "Wednesdays, 3:00 PM",
@@ -164,7 +168,6 @@ def test_activity_with_special_characters(client):
     email = "artist@mergington.edu"
     
     # URL encode the activity name
-    from urllib.parse import quote
     activity_name = quote("Art & Crafts")
     
     response = client.post(f"/activities/{activity_name}/signup?email={email}")
